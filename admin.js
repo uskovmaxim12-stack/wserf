@@ -11,7 +11,7 @@ const T=["stats","tracks","albums","journal","stories","forumcats","forumtopics"
 const TN={stats:"Обзор",tracks:"Песни",albums:"Альбомы",journal:"Дневник",stories:"Истории",forumcats:"Форум: разделы",forumtopics:"Форум: темы",design:"Оформление",events:"События",texts:"Тексты",settings:"Настройки",users:"Пользователи",reports:"Жалобы",comments:"Комментарии"};
 let tab="stats";const root=document.createElement("div");root.className="wrap";M.innerHTML="";M.appendChild(root);
 const ad=()=>document.getElementById("ad");
-function shell(){root.innerHTML=`<section class="hero" style="padding:40px 0 0"><div class="eyebrow">управление</div><h1 style="font-size:44px">Панель сайта</h1></section><div class="tabs">${T.map(k=>`<button data-t="${k}" class="${k===tab?"on":""}">${TN[k]}</button>`).join("")}</div><div id="ad"></div>`;
+function shell(){root.innerHTML=`<section class="hero" style="padding:40px 0 0"><div class="eyebrow">управление · версия 2026.11.23-1</div><h1 style="font-size:44px">Панель сайта</h1></section><div class="tabs">${T.map(k=>`<button data-t="${k}" class="${k===tab?"on":""}">${TN[k]}</button>`).join("")}</div><div id="ad"></div>`;
  root.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{tab=b.dataset.t;shell();show()});
  sb.from("reports").select("id",{count:"exact",head:true}).then(r=>{const n=r.count||0,b=root.querySelector("[data-t=reports]");if(n&&b)b.textContent="Жалобы ("+n+")"})}
 async function show(){const x=ad();x.innerHTML="Загрузка…";if(panels[tab])return paint();if(E[tab])return crud(E[tab]);if(tab==="forumtopics")return ftopics();if(tab==="users")return users();if(tab==="reports")return reps();if(tab==="comments")return comm();return stats()}

@@ -175,3 +175,6 @@ body.mtn .top,body.mtn .tab,body.mtn footer,body.mtn #pl,body.mtn .bn{display:no
 .mt .orb{background:#6d5dfc;filter:blur(64px) saturate(1.4);opacity:.95}
 .mt .o2{background:#ff4f9a;filter:blur(64px) saturate(1.4)}.mt .o3{background:#19d3ff;filter:blur(56px) saturate(1.4);opacity:.85}
 .mt-bar i{background:linear-gradient(90deg,#19d3ff,#ff4f9a)}.mt-c{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.4)}
+
+input[type=number]{-moz-appearance:textfield;appearance:textfield}input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.ver{margin-top:8px;font-size:11px;opacity:.45}
