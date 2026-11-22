@@ -3,13 +3,46 @@ const B=document.body,R=B.dataset.root||"",P=B.dataset.page,Q=new URLSearchParam
 const C=window.WSERF_CFG||{},ok=C.url&&C.key&&!/XXXX|ВСТАВЬТЕ/.test(C.url+C.key);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=d=>d?new Date(d).toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"}):"";
+
+const PRE={forest:{n:"Лес",bg:"#10110F",ac:"#B9C5AA"},midnight:{n:"Полночь",bg:"#0E1117",ac:"#9DB7E8"},plum:{n:"Слива",bg:"#130F16",ac:"#D3A8E0"},graphite:{n:"Графит",bg:"#121212",ac:"#D6D6D0"},ember:{n:"Закат",bg:"#15100E",ac:"#E8B48A"},halloween:{n:"Хэллоуин",bg:"#120B08",ac:"#FF8A2B"},newyear:{n:"Новый год",bg:"#0B1322",ac:"#A9D6FF"},valentine:{n:"14 февраля",bg:"#17090F",ac:"#FF8FB1"},autumn:{n:"Осень",bg:"#15100A",ac:"#E6A04B"}};
+const DEF={name:"wserf",theme:{preset:"forest",bg:"#10110F",ac:"#B9C5AA"},fx:"none",hero:{eyebrow:"личное пространство",title:"Мысли, музыка и истории",accent:"истории",text:"Меня зовут wserf. Здесь я пишу дневник, рассказываю, как рождаются песни, и делюсь музыкой.",image:""},about:{title:"wserf",text:"Это моё личное пространство: дневник, истории и музыка. Я не зарабатываю на этом, я просто делюсь тем, что у меня внутри.\n\nПервая песня, «Опять и опять», родилась ночью. Текст мой, музыку я собирал в Suno.",photo:""},footer:"© wserf",nav:{journal:true,stories:true,music:true,about:true},features:{register:true,comments:true,likes:true,downloads:true},banner:{on:false,text:"",link:""},maintenance:{on:false,text:"Сайт на обслуживании. Скоро вернусь."},events:[],css:"",favicon:"🎧",featured:"",labels:{home:"Главная",journal:"Дневник",stories:"Истории",music:"Музыка",about:"Автор"},pages:{journal:{eyebrow:"дневник",title:"Заметки и мысли",accent:"мысли"},stories:{eyebrow:"истории",title:"Как это создавалось",accent:"создавалось"},music:{eyebrow:"музыка",title:"Альбомы и песни",accent:"песни"}},links:[],emoji:"😀 😂 🥹 😍 😭 🔥 💚 🖤 ✨ 🌙 🎧 🎶 👏 🙏 😮 💔",stickers:"🌙 💚 🔥 😭 🥹 ✨ 🎧 🖤",moderation:{badwords:""},privacy:"Что хранится. Почта, никнейм, фото и описание профиля (если вы их добавили), дата регистрации, ваши лайки и комментарии. Пароль хранится только в виде необратимого хэша, ни я, ни кто-либо другой его не видит.\n\nЧто видно другим. Никнейм, фото, описание, дата регистрации и ваши комментарии. Почта и лайки не публикуются: их видите только вы и автор сайта.\n\nСтатистика. Считается только количество просмотров страниц, без привязки к человеку, без IP-адресов и отпечатков браузера. Рекламы и сторонних трекеров нет. Cookie не используются, данные входа хранятся в браузере.\n\nВаши права. В профиле можно изменить ник, описание, фото и пароль, скачать все свои данные файлом и удалить аккаунт. При удалении исчезают аккаунт, фото, лайки и все ваши комментарии с ответами под ними.\n\nПравила. Без оскорблений, спама и ссылок в комментариях. На любой комментарий можно пожаловаться. Автор может удалять сообщения и ограничивать аккаунты нарушителей."};
+const merge=(a,b)=>{if(b===undefined)return a;if(!b||typeof b!=="object"||Array.isArray(b))return b;const o={...a};for(const k in b)o[k]=a&&a[k]&&typeof a[k]==="object"&&!Array.isArray(a[k])?merge(a[k],b[k]):b[k];return o};
+const inRange=v=>{const d=new Date(),p=n=>String(n).padStart(2,"0"),t=d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate());
+ if(v.yearly&&v.start&&v.end){const s=v.start.slice(5),e=v.end.slice(5),m=t.slice(5);return s<=e?m>=s&&m<=e:m>=s||m<=e}
+ return(!v.start||t>=v.start)&&(!v.end||t<=v.end)};
+const safeUrl=u=>/^(https?:\/\/|mailto:|tg:)/i.test(String(u||"").trim())?String(u).trim():"";
+const SAFE=/[?&]safe=1/.test(location.search);
+function effective(c){const e=JSON.parse(JSON.stringify(c)),ev=SAFE?null:(c.events||[]).find(v=>v.enabled&&inRange(v));e.event=ev||null;
+ if(ev){if(ev.preset)e.theme={preset:ev.preset};if(ev.effect)e.fx=ev.effect;if(ev.banner)e.banner={on:true,text:ev.banner,link:""};
+  if(ev.heroTitle)e.hero={...e.hero,title:ev.heroTitle,accent:ev.heroAccent||"",text:ev.heroText||e.hero.text}}
+ return e}
+let EFF=null,ISADM=false,fxRaf=0,fxName="";
+function fx(name){if(name===fxName)return;fxName=name;cancelAnimationFrame(fxRaf);const o=document.getElementById("fx");if(o)o.remove();
+ if(!name||name==="none"||matchMedia("(prefers-reduced-motion:reduce)").matches)return;
+ const E={snow:["❄","❅","❆"],halloween:["🎃","🦇","👻"],newyear:["❄","✨","🎄","⭐"],hearts:["💗","💖","💕"],leaves:["🍁","🍂"],sparkles:["✨","⭐","💫"]}[name]||["✨"];
+ const c=document.createElement("canvas");c.id="fx";document.body.appendChild(c);const x=c.getContext("2d");let W=0,H=0;const rs=()=>{W=c.width=innerWidth;H=c.height=innerHeight};rs();addEventListener("resize",rs);
+ const n=innerWidth<600?20:38,P=Array.from({length:n},()=>({x:Math.random()*W,y:Math.random()*H,s:14+Math.random()*16,v:.4+Math.random()*1.0,a:Math.random()*6.28,e:E[Math.random()*E.length|0]}));
+ const tick=()=>{if(fxName!==name)return;x.clearRect(0,0,W,H);x.globalAlpha=.8;for(const p of P){p.y+=p.v;p.a+=.012;p.x+=Math.sin(p.a)*.6;if(p.y>H+30){p.y=-30;p.x=Math.random()*W}x.font=p.s+"px serif";x.fillText(p.e,p.x,p.y)}fxRaf=requestAnimationFrame(tick)};tick()}
+function drawBanner(){document.querySelectorAll(".bn").forEach(b=>b.remove());const top=document.querySelector(".top");if(!top||!EFF)return;const e=EFF,add=h=>top.insertAdjacentHTML("afterend",h);
+ if(e.maintenance.on&&ISADM)add('<div class="bn">Режим обслуживания включён: посетители видят заглушку, а вы видите сайт как обычно.</div>');
+ if(e.banner.on&&e.banner.text){const k="bn"+e.banner.text;if(sessionStorage.getItem(k))return;add(`<div class="bn">${safeUrl(e.banner.link)?`<a href="${esc(safeUrl(e.banner.link))}">${esc(e.banner.text)}</a>`:esc(e.banner.text)}<button aria-label="Закрыть">×</button></div>`);document.querySelector(".bn button")?.addEventListener("click",ev=>{sessionStorage.setItem(k,1);ev.target.parentElement.remove()})}}
+function applySite(c){const e=effective(c);EFF=e;const pal=e.theme.preset==="custom"?{bg:e.theme.bg||"#10110F",ac:e.theme.ac||"#B9C5AA"}:PRE[e.theme.preset]||PRE.forest,st=document.documentElement.style,h=pal.ac.replace("#","");
+ const L=(parseInt(h.slice(0,2),16)*299+parseInt(h.slice(2,4),16)*587+parseInt(h.slice(4,6),16)*114)/255000;
+ st.setProperty("--bg",pal.bg);st.setProperty("--ac",pal.ac);st.setProperty("--onac",L>.55?"#10110F":"#ffffff");
+ let s=document.getElementById("ccss");if(!s){s=document.createElement("style");s.id="ccss";document.head.appendChild(s)}s.textContent=SAFE?"":(e.css||"");let ic=document.querySelector("link[rel=icon]");if(!ic){ic=document.createElement("link");ic.rel="icon";document.head.appendChild(ic)}ic.href="data:image/svg+xml,"+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">${e.favicon||"🎧"}</text></svg>`);
+ const m=document.querySelector("meta[name=theme-color]");if(m)m.content=pal.bg;let md=document.querySelector("meta[name=description]");if(!md){md=document.createElement("meta");md.name="description";document.head.appendChild(md)}md.content=e.hero.text||"";fx(e.fx);drawBanner();return e}
+let raw=DEF;try{const c0=JSON.parse(localStorage.getItem("wserf_site"));if(c0)raw=merge(DEF,c0)}catch(e){}
+applySite(raw);
 const sb=ok?window.supabase.createClient(C.url,C.key):null;
 let user=null,me=null;
-if(sb){user=(await sb.auth.getSession()).data.session?.user||null;if(user)me=(await sb.from("profiles").select("*").eq("id",user.id).maybeSingle()).data}
-const adm=me?.role==="admin";window.W={sb,esc,fmt,user,me,M,R};
+if(sb){const[s0,st0]=await Promise.all([sb.auth.getSession(),sb.from("settings").select("value").eq("key","site").maybeSingle()]);
+ user=s0.data.session?.user||null;if(user)me=(await sb.from("profiles").select("*").eq("id",user.id).maybeSingle()).data;
+ const st=st0.data;if(st&&st.value&&Object.keys(st.value).length){raw=merge(DEF,st.value);try{localStorage.setItem("wserf_site",JSON.stringify(st.value))}catch(e){}}}
+const adm=me?.role==="admin";ISADM=adm;const eff=applySite(raw);window.W={sb,esc,fmt,user,me,M,R,DEF,PRE,merge,applySite,effective,raw};
 const get=async p=>{const{data,error}=await p;if(error)console.error(error);return data||[]};
-const G=["linear-gradient(145deg,#3b4a34,#10110F)","linear-gradient(145deg,#56644a,#1a1d18)","linear-gradient(145deg,#2d3a30,#0d0e0c)"];
-const cov=(o,w)=>`<div class="cov ${w?"w":""}" style="--g:${G[(o.id||"a").charCodeAt(0)%3]}">${o.cover?`<img src="${esc(o.cover)}" alt="">`:`<span>${esc((o.title||"w")[0].toLowerCase())}</span>`}</div>`;
+const G=["linear-gradient(145deg,color-mix(in srgb,var(--ac) 30%,var(--bg)),var(--bg))","linear-gradient(145deg,color-mix(in srgb,var(--ac) 42%,var(--bg)),var(--bg))","linear-gradient(145deg,color-mix(in srgb,var(--ac) 22%,var(--bg)),var(--bg))"];
+const cov=(o,w)=>`<div class="cov ${w?"w":""}" style="--g:${G[(o.id||"a").charCodeAt(0)%3]}">${o.cover?`<img src="${esc(o.cover)}" alt="">`:`<span>${o.kind==="story"?"❝":o.kind?"✎":"♪"}</span>`}</div>`;
+const av=p=>p?.avatar?`<img class="av" src="${esc(p.avatar)}" alt="">`:`<div class="av">${esc((p?.nick||"?")[0].toUpperCase())}</div>`;
 const L={post:i=>`${R}post.html?id=${i}`,story:i=>`${R}story.html?id=${i}`,album:i=>`${R}album.html?id=${i}`,track:i=>`${R}track.html?id=${i}`};
 const card=(o,k)=>`<a class="card fade" href="${L[k](o.id)}">${cov(o,1)}<div class="b"><div class="meta">${fmt(o.published_at)}${o.category?" · "+esc(o.category):""}</div><h3>${esc(o.title)}</h3><p>${esc(o.excerpt||"")}</p></div></a>`;
 const albCard=a=>`<a class="card fade" href="${L.album(a.id)}">${cov(a)}<div class="b"><div class="meta">Альбом · ${a.year||""}</div><h3>${esc(a.title)}</h3></div></a>`;
@@ -17,33 +50,50 @@ const list=(a,k,m)=>a.length?`<div class="grid">${a.map(o=>card(o,k)).join("")}<
 const nf=t=>`<div class="wrap"><div class="empty" style="margin:80px 0">${t}</div></div>`;
 const hero=(e,h)=>`<section class="hero fade"><div class="eyebrow">${e}</div><h1>${h}</h1></section>`;
 // оболочка
-const N=[["","Главная","⌂","home"],["journal.html","Дневник","✎","journal"],["stories.html","Истории","❝","stories"],["music.html","Музыка","♪","music"],["about.html","Автор","●","about"]],cur=P.split("-")[0];
-const ml=c=>N.map(n=>`<a href="${R}${n[0]}" class="${n[3]===cur?"on":""}">${c?`<i>${n[2]}</i>`:""}${n[1]}</a>`).join("");
-const acc=me?`${adm?`<a href="${R}admin.html">Управление</a>`:""}<a href="${R}profile.html">${esc(me.nick)}</a>`:`<a href="${R}login.html">Войти</a>`;
-B.insertAdjacentHTML("afterbegin",`<header class="top"><div class="wrap"><a class="logo" href="${R}">wserf<i>.</i></a><nav class="nav">${ml()}</nav><div class="acc">${acc}</div></div></header>`);
-B.insertAdjacentHTML("beforeend",`<footer><div class="wrap">© wserf · <a href="${R}privacy.html">Конфиденциальность</a></div></footer><nav class="tab">${ml(1)}</nav>
-<div id="pl" class="glass"><div id="plc" style="width:48px"></div><div class="i"><b id="plt"></b><small id="pls"></small><div class="bar" id="pb"><div></div></div></div><button id="pp">❚❚</button></div><audio id="au" preload="none"></audio>`);
+const IC={home:'<svg viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4v-5H9v5H5a1 1 0 0 1-1-1z"/></svg>',journal:'<svg viewBox="0 0 24 24"><path d="M5 4h10l4 4v12H5z"/><path d="M14 4v5h5M8 13h8M8 16.5h5"/></svg>',stories:'<svg viewBox="0 0 24 24"><path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-7l-4 4v-4H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>',music:'<svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>',about:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/></svg>'};
+const N=[["","Главная",IC.home,"home"],["journal.html","Дневник",IC.journal,"journal"],["stories.html","Истории",IC.stories,"stories"],["music.html","Музыка",IC.music,"music"],["about.html","Автор",IC.about,"about"]],cur=P.split("-")[0];
+const ml=c=>N.filter(n=>eff.nav[n[3]]!==false).map(n=>`<a href="${R}${n[0]}" class="${n[3]===cur?"on":""}">${c?`<i>${n[2]}</i>`:""}${esc(eff.labels[n[3]]||n[1])}</a>`).join("");
+const acc=me?`${adm?`<a href="${R}admin.html">Управление</a>`:""}<a href="${R}profile.html">${av(me)}<span class="nk">${esc(me.nick)}</span></a>`:`<a href="${R}login.html">Войти</a>`;
+B.insertAdjacentHTML("afterbegin",`<header class="top"><div class="wrap"><a class="logo" href="${R}">${esc(eff.name)}<i>.</i></a><nav class="nav">${ml()}</nav><div class="acc">${acc}</div></div></header>`);
+B.insertAdjacentHTML("beforeend",`<footer><div class="wrap">${eff.links.filter(l=>safeUrl(l.url)).map(l=>`<a href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.name||l.url)}</a>`).join(" · ")}${eff.links.some(l=>safeUrl(l.url))?"<br>":""}${esc(eff.footer)} · <a href="${R}privacy.html">Конфиденциальность</a></div></footer><nav class="tab">${ml(1)}</nav>
+<div id="pl"><div id="plc"></div><div class="i"><b id="plt"></b><small id="pls"></small></div><button id="pp" aria-label="Пауза/пуск"></button></div><div id="np"><button id="npx" aria-label="Свернуть">⌄</button><div id="npc"></div><h2 id="npt"></h2><div class="meta" id="npa"></div><input type="range" id="npr" min="0" max="1000" value="0"><div class="tm"><span id="nps">0:00</span><span id="npe">0:00</span></div><div class="ctl"><button id="npv" aria-label="Предыдущая"></button><button id="npp" class="big" aria-label="Пауза/пуск"></button><button id="npn" aria-label="Следующая"></button></div></div><div id="sh"><div class="sheet"><h3>Нужен аккаунт</h3><p id="shp"></p><a class="btn" href="${R}login.html">Войти</a><a class="btn ghost" href="${R}register.html">Создать аккаунт</a><button class="btn ghost" id="shc">Не сейчас</button></div></div><audio id="au" preload="none"></audio>`);
+drawBanner();
 // плеер
-const TR={},au=document.getElementById("au"),pp=document.getElementById("pp"),$=s=>document.querySelector(s);
+const TR={},$=q=>document.querySelector(q),au=$("#au"),PI='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',PA='<svg viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
+const EYE='<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
 const reg=a=>(a.forEach(t=>TR[t.id]=t),a);
-window.play=id=>{const t=TR[id];if(!t)return;$("#plc").innerHTML=cov(t);$("#plt").textContent=t.title;$("#pls").textContent="wserf";
- if(!t.audio){$("#pls").textContent="Аудио для этой песни ещё не загружено";$("#pl").classList.add("on");return}
- au.src=t.audio;$("#pl").classList.add("on");au.play().catch(()=>{});au.onerror=()=>{$("#pls").textContent="Не удалось загрузить аудио"}};
-pp.onclick=()=>au.paused?au.play():au.pause();au.onplay=()=>pp.textContent="❚❚";au.onpause=()=>pp.textContent="▶";
-au.ontimeupdate=()=>$("#pb div").style.width=(au.currentTime/au.duration*100||0)+"%";
-$("#pb").onclick=e=>{const r=e.currentTarget.getBoundingClientRect();au.currentTime=(e.clientX-r.left)/r.width*au.duration||0};
+const mm=x=>isFinite(x)?Math.floor(x/60)+":"+String(Math.floor(x%60)).padStart(2,"0"):"0:00";
+const icon=()=>{$("#pp").innerHTML=$("#npp").innerHTML=au.paused?PI:PA};
+let QU=[],CUR=null;const PV='<svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>',NX='<svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>';
+window.play=id=>{const t=TR[id];if(!t)return;CUR=id;QU=Object.keys(TR).filter(k=>TR[k].audio);$("#plc").innerHTML=$("#npc").innerHTML=cov(t);$("#plt").textContent=$("#npt").textContent=t.title;$("#pls").textContent=$("#npa").textContent=eff.name;$("#pl").classList.add("on");
+ if(!t.audio){$("#pls").textContent="Аудио ещё не загружено";return}
+ au.src=t.audio;au.play().catch(()=>{});au.onerror=()=>{$("#pls").textContent="Не удалось загрузить аудио"};
+ try{if("mediaSession"in navigator)navigator.mediaSession.metadata=new MediaMetadata({title:t.title,artist:eff.name,artwork:t.cover?[{src:t.cover}]:[]})}catch(e){}};
+const step=d=>{const i=QU.indexOf(CUR);if(i<0||QU.length<2)return;play(QU[(i+d+QU.length)%QU.length])};
+$("#npv").innerHTML=PV;$("#npn").innerHTML=NX;$("#npv").onclick=()=>step(-1);$("#npn").onclick=()=>step(1);au.onended=()=>step(1);
+try{if("mediaSession"in navigator){const m=navigator.mediaSession;m.setActionHandler("play",()=>au.play());m.setActionHandler("pause",()=>au.pause());m.setActionHandler("previoustrack",()=>step(-1));m.setActionHandler("nexttrack",()=>step(1))}}catch(e){}
+document.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches&&e.target.matches(".tr[role=button]")){e.preventDefault();e.target.click()}});
+const tg=()=>au.paused?au.play():au.pause();
+$("#pp").onclick=e=>{e.stopPropagation();tg()};$("#npp").onclick=tg;au.onplay=au.onpause=icon;
+au.ontimeupdate=()=>{const r=au.currentTime/au.duration;$("#npr").value=isFinite(r)?r*1000:0;$("#nps").textContent=mm(au.currentTime);$("#npe").textContent=mm(au.duration)};
+$("#npr").oninput=e=>{if(isFinite(au.duration))au.currentTime=e.target.value/1000*au.duration};
+$("#pl").onclick=()=>$("#np").classList.add("on");$("#npx").onclick=()=>$("#np").classList.remove("on");icon();
+const gate=t=>{$("#shp").textContent=t;$("#sh").classList.add("on")};$("#shc").onclick=()=>$("#sh").classList.remove("on");$("#sh").onclick=e=>{if(e.target.id==="sh")$("#sh").classList.remove("on")};
+const eyes=()=>document.querySelectorAll(".eye").forEach(b=>b.onclick=()=>{const i=b.previousElementSibling;i.type=i.type==="password"?"text":"password";b.classList.toggle("on")});
+const dlInit=t=>{const b=$("#dl");if(b)b.onclick=async()=>{if(!user)return gate("Скачивать песни могут только пользователи с аккаунтом.");if(!t.audio)return alert("Аудио ещё не загружено.");b.textContent="Загрузка…";
+ try{const bl=await(await fetch(t.audio)).blob(),a=document.createElement("a");a.href=URL.createObjectURL(bl);a.download=t.title+".mp3";document.body.appendChild(a);a.click();a.remove()}catch(e){window.open(t.audio,"_blank")}b.textContent="Скачать"}};
 // просмотры
 const view=(t,id)=>{const k="v"+id;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);sb.from("views").insert({target_type:t,target_id:id}).then(()=>{})};
 // лайки
-async function likes(id){const el=$("#lk");let mine=user?!!(await sb.from("likes").select("track_id").eq("track_id",id).eq("user_id",user.id).maybeSingle()).data:false;
+async function likes(id){const el=$("#lk");if(!eff.features.likes){el.remove();return}let mine=user?!!(await sb.from("likes").select("track_id").eq("track_id",id).eq("user_id",user.id).maybeSingle()).data:false;
  const draw=async()=>{const n=(await sb.rpc("track_like_count",{t:id})).data||0;el.innerHTML=`<button class="btn ghost" id="lb">${mine?"♥":"♡"} ${n}</button>`;
-  $("#lb").onclick=async()=>{if(!user)return location.href=R+"auth/login.html";if(me.banned)return;
+  $("#lb").onclick=async()=>{if(!user)return gate("Чтобы ставить лайки, войдите в аккаунт или создайте его.");if(me?.banned)return;
    if(mine)await sb.from("likes").delete().eq("track_id",id).eq("user_id",user.id);else await sb.from("likes").insert({track_id:id});mine=!mine;draw()}};draw()}
 // комментарии
-const EM="😀 😂 🥹 😍 😭 🔥 💚 🖤 ✨ 🌙 🎧 🎶 👏 🙏 😮 💔".split(" "),ST="🌙 💚 🔥 😭 🥹 ✨ 🎧 🖤".split(" ");
-const cmBox=`<section class="sec"><h2>Комментарии</h2><div id="cmf"></div><div id="cml"></div></section>`;
-async function comments(type,id){let parent=null;
- const form=()=>{const f=$("#cmf");if(!user){f.innerHTML=`<div class="empty">Чтобы комментировать, <a href="${R}login.html" style="color:var(--ac)">войдите</a> или <a href="${R}register.html" style="color:var(--ac)">зарегистрируйтесь</a>.</div>`;return}
+const EM=eff.emoji.split(/\s+/).filter(Boolean),ST=eff.stickers.split(/\s+/).filter(Boolean);
+const cmBox=!eff.features.comments?"":`<section class="sec"><h2>Комментарии</h2><div id="cmf"></div><div id="cml"></div></section>`;
+async function comments(type,id){if(!$("#cmf"))return;let parent=null;
+ const form=()=>{const f=$("#cmf");if(!user||!me){f.innerHTML=`<div class="empty">Чтобы комментировать, <a href="${R}login.html" style="color:var(--ac)">войдите</a> или <a href="${R}register.html" style="color:var(--ac)">зарегистрируйтесь</a>.</div>`;return}
   if(me.banned){f.innerHTML='<div class="empty">Возможность писать ограничена.</div>';return}
   f.innerHTML=`<div class="cmf glass" style="padding:18px"><div id="rp" class="meta"></div><textarea id="ct" rows="3" maxlength="1000" placeholder="Ваш комментарий (без ссылок)"></textarea><div class="emo">${EM.map(e=>`<button type="button" data-e="${e}">${e}</button>`).join("")}</div>
   <input id="gf" placeholder="GIF: ссылка с giphy.com или tenor.com (необязательно)"><div class="meta">Стикеры — отправляются сразу:</div><div class="emo">${ST.map(e=>`<button type="button" data-s="${e}" style="font-size:34px">${e}</button>`).join("")}</div><button class="btn" id="cs" style="justify-self:start">Отправить</button><div class="er" id="ce"></div></div>`;
@@ -51,55 +101,90 @@ async function comments(type,id){let parent=null;
   const send=async o=>{const{error}=await sb.from("comments").insert({target_type:type,target_id:id,parent_id:parent,...o});if(error)return $("#ce").textContent=error.message.includes("check")?"Ссылки в тексте и посторонние GIF-адреса не допускаются.":error.message;parent=null;form();load()};
   f.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>send({sticker:b.dataset.s}));
   $("#cs").onclick=()=>send({body:$("#ct").value.trim(),gif_url:$("#gf").value.trim()||null})};
- const load=async()=>{const rows=await get(sb.from("comments").select("*,profiles(nick)").eq("target_type",type).eq("target_id",id).order("created_at"));
-  const one=(r,s)=>`<div class="cm ${s?"sub":""}"><div class="meta"><b>${esc(r.profiles?.nick)}</b> · ${fmt(r.created_at)}${user&&(r.user_id===user.id||adm)?` · <a href="#" data-d="${r.id}">удалить</a>`:""}${user&&!s&&!me.banned?` · <a href="#" data-r="${r.id}">ответить</a>`:""}</div>${r.sticker?`<div class="stk">${esc(r.sticker)}</div>`:""}${r.body?`<p>${esc(r.body)}</p>`:""}${r.gif_url?`<img class="gif" src="${esc(r.gif_url)}" alt="GIF">`:""}</div>`;
+ const load=async()=>{const rows=await get(sb.from("comments").select("*,profiles(nick,avatar)").eq("target_type",type).eq("target_id",id).order("created_at"));
+  const one=(r,s)=>`<div class="cm ${s?"sub":""}">${av(r.profiles)}<div class="cb"><div class="meta"><b><a href="${R}profile.html?u=${r.user_id}">${esc(r.profiles?.nick)}</a></b> · ${fmt(r.created_at)}${user&&(r.user_id===user.id||adm)?` · <a href="#" data-d="${r.id}">удалить</a>`:""}${user&&r.user_id!==user.id&&!me?.banned?` · <a href="#" data-p="${r.id}">пожаловаться</a>`:""}${user&&!s&&!me?.banned?` · <a href="#" data-r="${r.id}">ответить</a>`:""}</div>${r.sticker?`<div class="stk">${esc(r.sticker)}</div>`:""}${r.body?`<p>${esc(r.body)}</p>`:""}${r.gif_url?`<img class="gif" src="${esc(r.gif_url)}" alt="GIF">`:""}</div></div>`;
   const el=$("#cml");el.innerHTML=rows.filter(r=>!r.parent_id).map(t=>one(t)+rows.filter(x=>x.parent_id===t.id).map(x=>one(x,1)).join("")).join("")||'<div class="empty">Пока нет комментариев.</div>';
   el.querySelectorAll("[data-d]").forEach(a=>a.onclick=async e=>{e.preventDefault();if(confirm("Удалить комментарий?")){await sb.from("comments").delete().eq("id",a.dataset.d);load()}});
-  el.querySelectorAll("[data-r]").forEach(a=>a.onclick=e=>{e.preventDefault();parent=a.dataset.r;$("#rp").textContent="Ответ на комментарий";$("#ct")?.focus()})};
+  el.querySelectorAll("[data-r]").forEach(a=>a.onclick=e=>{e.preventDefault();parent=a.dataset.r;$("#rp").textContent="Ответ на комментарий";$("#ct")?.focus()});el.querySelectorAll("[data-p]").forEach(a=>a.onclick=async e=>{e.preventDefault();const{error}=await sb.from("reports").insert({comment_id:a.dataset.p});alert(error?(error.code==="23505"?"Вы уже отправляли жалобу на этот комментарий.":error.message):"Жалоба отправлена автору сайта.")})};
  form();load()}
 // страницы
 const post=async(kind,t)=>{const o=(await get(sb.from("posts").select("*").eq("id",Q).eq("kind",kind).eq("published",true)))[0];if(!o)return nf("Не найдено.");
  setTimeout(()=>{view("post",o.id);comments("post",o.id)});
  return `<div class="wrap"><article class="art fade"><div class="meta">${fmt(o.published_at)}${o.category?" · "+esc(o.category):""}</div><h1>${esc(o.title)}</h1>${o.cover?cov(o,1):""}<div class="body">${esc(o.body)}</div>${cmBox}</article></div>`};
-const trRows=ts=>ts.map((t,i)=>`<div class="tr" onclick="play('${t.id}')"><b>${i+1}</b><span>${esc(t.title)}</span><a href="${L.track(t.id)}" onclick="event.stopPropagation()">Страница</a></div>`).join("")||'<div class="empty">Песен пока нет.</div>';
+const trRows=ts=>ts.map((t,i)=>`<div class="tr" role="button" tabindex="0" onclick="play('${t.id}')"><b>${i+1}</b><span>${esc(t.title)}</span><a href="${L.track(t.id)}" onclick="event.stopPropagation()">Страница</a></div>`).join("")||'<div class="empty">Песен пока нет.</div>';
 const pubQ=(t,o)=>sb.from(t).select("*").eq("published",true).order(o,{ascending:false});
+const resize=f=>new Promise((ok,no)=>{const im=new Image();im.onload=()=>{const c=document.createElement("canvas"),n=Math.min(im.width,im.height),S=320;c.width=c.height=S;c.getContext("2d").drawImage(im,(im.width-n)/2,(im.height-n)/2,n,n,0,0,S,S);c.toBlob(b=>b?ok(b):no(new Error("не удалось обработать")),"image/jpeg",.85)};im.onerror=()=>no(new Error("не удалось прочитать файл"));im.src=URL.createObjectURL(f)});
+const pubProfile=async u=>{const p=(await get(sb.from("profiles").select("id,nick,bio,avatar,role,created_at").eq("id",u)))[0];if(!p)return nf("Профиль не найден.");
+ const cm=await get(sb.from("comments").select("body,sticker,created_at").eq("user_id",u).order("created_at",{ascending:false}).limit(10));
+ return `<div class="wrap"><div class="art prof" style="max-width:560px"><div class="pf"><div class="avl">${av(p)}</div><div><h1 style="font-size:30px">${esc(p.nick)}${p.role==="admin"?' <span class="badge">автор</span>':""}</h1><div class="meta">на сайте с ${fmt(p.created_at)}</div></div></div>${p.bio?`<p style="margin-top:18px;white-space:pre-wrap">${esc(p.bio)}</p>`:""}
+ <h3>Последние комментарии</h3>${cm.map(c=>`<div class="cm"><div class="cb"><div class="meta">${fmt(c.created_at)}</div>${esc(c.sticker||c.body||"GIF")}</div></div>`).join("")||'<div class="empty">Пока нет комментариев.</div>'}</div></div>`};
+const pageHero=k=>{const h=eff.pages[k],t=esc(h.title),a=h.accent?esc(h.accent):"";return hero(esc(h.eyebrow),a&&t.includes(a)?t.replace(a,`<em>${a}</em>`):t)};
+const heroHtml=()=>{const h=eff.hero,t=esc(h.title),a=h.accent?esc(h.accent):"",tt=a&&t.includes(a)?t.replace(a,`<em>${a}</em>`):t;
+ return `<section class="hero fade${h.image?" himg":""}"${h.image?` style="--hi:url('${esc(h.image)}')"`:""}><div class="eyebrow">${esc(h.eyebrow)}</div><h1>${tt}</h1><p>${esc(h.text)}</p></section>`};
+const TT={journal:"Дневник","journal-post":"Запись",stories:"Истории","stories-story":"История",music:"Музыка","music-album":"Альбом","music-track":"Песня",about:"Об авторе","about-privacy":"Конфиденциальность",login:"Вход",register:"Регистрация",profile:"Профиль",admin:"Управление"};
 const V={
-home:async()=>{const[t]=reg(await get(pubQ("tracks","published_at").limit(1)));const ps=await get(pubQ("posts","published_at").eq("kind","journal").limit(3)),ss=await get(pubQ("posts","published_at").eq("kind","story").limit(3));
- return `<div class="wrap">${hero("личное пространство","Мысли, музыка и <em>истории</em>")}<p style="color:var(--t2);font-size:19px;max-width:34em;margin-top:-28px">Меня зовут wserf. Здесь я пишу дневник, рассказываю, как рождаются песни, и делюсь музыкой.</p>
- ${t?`<section class="sec"><div class="glass feat fade">${cov(t)}<div><div class="eyebrow">Свежий релиз</div><h2>${esc(t.title)}</h2><p style="color:var(--t2)">${esc(t.story||"")}</p><button class="btn" onclick="play('${t.id}')">▶ Слушать</button> <a class="btn ghost" href="${L.track(t.id)}">Страница песни</a></div></div></section>`:""}
- <section class="sec"><h2>Дневник <a href="${R}journal.html">Все записи →</a></h2>${list(ps,"post","Первые записи появятся совсем скоро.")}</section><section class="sec"><h2>Истории <a href="${R}stories.html">Все истории →</a></h2>${list(ss,"story","Истории появятся здесь.")}</section></div>`},
-journal:async()=>`<div class="wrap">${hero("дневник","Заметки и <em>мысли</em>")}${list(await get(pubQ("posts","published_at").eq("kind","journal")),"post","Записей пока нет.")}</div>`,
-stories:async()=>`<div class="wrap">${hero("истории","Как это <em>создавалось</em>")}${list(await get(pubQ("posts","published_at").eq("kind","story")),"story","Историй пока нет.")}</div>`,
+home:async()=>{const[tr0,ps,ss]=await Promise.all([get(eff.featured?pubQ("tracks","published_at").eq("id",eff.featured):pubQ("tracks","published_at").limit(1)),get(pubQ("posts","published_at").eq("kind","journal").limit(3)),get(pubQ("posts","published_at").eq("kind","story").limit(3))]);const[t]=reg(tr0);
+ return `<div class="wrap">${new URLSearchParams(location.search).get("deleted")?'<div class="empty" style="margin-top:20px">Ваш аккаунт удалён. Спасибо, что были здесь.</div>':""}${heroHtml()}
+ ${t&&eff.nav.music!==false?`<section class="sec"><div class="glass feat fade">${cov(t)}<div><div class="eyebrow">${eff.featured?"Избранное":"Свежий релиз"}</div><h2>${esc(t.title)}</h2><p style="color:var(--t2)">${esc(t.story||"")}</p><button class="btn" onclick="play('${t.id}')">▶ Слушать</button> <a class="btn ghost" href="${L.track(t.id)}">Страница песни</a></div></div></section>`:""}
+ ${eff.nav.journal!==false?`<section class="sec"><h2>${esc(eff.labels.journal)} <a href="${R}journal.html">Все записи →</a></h2>${list(ps,"post","Первые записи появятся совсем скоро.")}</section>`:""}${eff.nav.stories!==false?`<section class="sec"><h2>${esc(eff.labels.stories)} <a href="${R}stories.html">Все истории →</a></h2>${list(ss,"story","Истории появятся здесь.")}</section>`:""}</div>`},
+journal:async()=>`<div class="wrap">${pageHero("journal")}${list(await get(pubQ("posts","published_at").eq("kind","journal")),"post","Записей пока нет.")}</div>`,
+stories:async()=>`<div class="wrap">${pageHero("stories")}${list(await get(pubQ("posts","published_at").eq("kind","story")),"story","Историй пока нет.")}</div>`,
 "journal-post":()=>post("journal"),"stories-story":()=>post("story"),
-music:async()=>{const a=await get(pubQ("albums","year")),t=reg(await get(pubQ("tracks","published_at")));return `<div class="wrap">${hero("музыка","Альбомы и <em>песни</em>")}<div class="grid">${a.map(albCard).join("")||'<div class="empty">Альбомов пока нет.</div>'}</div><section class="sec"><h2>Все песни</h2>${trRows(t)}</section></div>`},
+music:async()=>{const[a,t0]=await Promise.all([get(pubQ("albums","year")),get(pubQ("tracks","published_at"))]),t=reg(t0);return `<div class="wrap">${pageHero("music")}<div class="grid">${a.map(albCard).join("")||'<div class="empty">Альбомов пока нет.</div>'}</div><section class="sec"><h2>Все песни</h2>${trRows(t)}</section></div>`},
 "music-album":async()=>{const a=(await get(pubQ("albums","year").eq("id",Q)))[0];if(!a)return nf("Альбом не найден.");const ts=reg(await get(sb.from("tracks").select("*").eq("album_id",a.id).eq("published",true).order("position")));
  return `<div class="wrap"><div class="alb fade">${cov(a)}<div><div class="eyebrow">Альбом · ${a.year||""}</div><h1>${esc(a.title)}</h1><p style="color:var(--t2)">${esc(a.description||"")}</p>${a.story?`<p style="margin-top:16px;white-space:pre-wrap">${esc(a.story)}</p>`:""}<div style="margin-top:28px">${trRows(ts)}</div></div></div></div>`},
 "music-track":async()=>{const t=reg(await get(pubQ("tracks","published_at").eq("id",Q)))[0];if(!t)return nf("Песня не найдена.");const a=t.album_id?(await get(sb.from("albums").select("id,title").eq("id",t.album_id)))[0]:null;
- setTimeout(()=>{view("track",t.id);likes(t.id);comments("track",t.id)});
- return `<div class="wrap"><div class="alb fade">${cov(t)}<div><div class="eyebrow">${a?`<a href="${L.album(a.id)}">${esc(a.title)}</a> · `:""}${fmt(t.published_at)}</div><h1>${esc(t.title)}</h1><button class="btn" onclick="play('${t.id}')">▶ Слушать</button> <span id="lk"></span>
+ setTimeout(()=>{view("track",t.id);likes(t.id);comments("track",t.id);dlInit(t)});
+ return `<div class="wrap"><div class="alb fade">${cov(t)}<div><div class="eyebrow">${a?`<a href="${L.album(a.id)}">${esc(a.title)}</a> · `:""}${fmt(t.published_at)}</div><h1>${esc(t.title)}</h1><div class="acts"><button class="btn" onclick="play('${t.id}')">▶ Слушать</button><span id="lk"></span>${eff.features.downloads?`<button class="btn ghost" id="dl">${user?"":"🔒 "}Скачать</button>`:""}</div>
  ${t.story?`<h3 style="margin:36px 0 12px">История</h3><p style="color:var(--t2);white-space:pre-wrap">${esc(t.story)}</p>`:""}<h3 style="margin:36px 0 12px">Текст</h3>${t.lyrics?`<div class="lyr">${esc(t.lyrics)}</div>`:'<div class="empty">Текст пока не добавлен.</div>'}${cmBox}</div></div></div>`},
-about:()=>`<div class="wrap"><div class="art fade"><div class="eyebrow">об авторе</div><h1>wserf</h1><div class="body">Это моё личное пространство: дневник, истории и музыка. Я не зарабатываю на этом, я просто делюсь тем, что у меня внутри.\n\nПервая песня, «Опять и опять», родилась ночью. Текст мой, музыку я собирал в Suno.</div></div></div>`,
-"about-privacy":()=>`<div class="wrap"><div class="art"><h1>Конфиденциальность</h1><div class="body">Что хранится: почта, никнейм, хэш пароля (сам пароль мы не видим), ваши лайки и комментарии, дата регистрации. Почта видна только вам и системе входа, остальным виден лишь никнейм.\n\nСтатистика: считается только количество просмотров страниц, без привязки к человеку, IP-адресам и отпечаткам.\n\nУдаление: в профиле есть кнопка «Удалить аккаунт», она стирает аккаунт, лайки и комментарии.\n\nКомментарии без ссылок; автор может удалять сообщения и ограничивать доступ нарушителям.</div></div></div>`,
-login:()=>`<div class="wrap"><form class="auth glass fade" id="af"><h1>Вход</h1><input name="email" type="email" placeholder="Почта" required><input name="password" type="password" placeholder="Пароль" required><button class="btn">Войти</button><div class="er" id="er"></div><div class="meta">Нет аккаунта? <a href="${R}register.html" style="color:var(--ac)">Регистрация</a></div></form></div>`,
-register:()=>`<div class="wrap"><form class="auth glass fade" id="af"><h1>Регистрация</h1><input name="nick" placeholder="Никнейм (2–24 символа)" minlength="2" maxlength="24" required><input name="email" type="email" placeholder="Почта" required><input name="password" type="password" placeholder="Пароль (от 8 символов)" minlength="8" required><button class="btn">Создать аккаунт</button><div class="er" id="er"></div><div class="meta">Регистрируясь, вы принимаете <a href="${R}privacy.html" style="color:var(--ac)">политику конфиденциальности</a>.</div></form></div>`,
-profile:async()=>{if(!me)return nf(`<a href="${R}login.html" style="color:var(--ac)">Войдите</a>, чтобы открыть профиль.`);
+about:()=>`<div class="wrap"><div class="art fade"><div class="eyebrow">об авторе</div><h1>${esc(eff.about.title)}</h1>${eff.about.photo?`<div class="cov w" style="--g:var(--s2)"><img src="${esc(eff.about.photo)}" alt=""></div>`:""}<div class="body">${esc(eff.about.text)}</div></div></div>`,
+"about-privacy":()=>`<div class="wrap"><div class="art prof"><h1>Конфиденциальность и правила</h1><div class="body">${esc(eff.privacy)}</div></div></div>`,
+login:()=>`<div class="wrap"><form class="auth fade" id="af"><h1>Вход</h1><div class="grp"><input name="email" type="email" placeholder="Почта" autocomplete="email" required><div class="pw"><input name="password" type="password" placeholder="Пароль" autocomplete="current-password" required><button type="button" class="eye" aria-label="Показать пароль">${EYE}</button></div></div><button class="btn big">Войти</button><div class="er" id="er"></div><div class="alt">Нет аккаунта? <a href="${R}register.html">Создать</a></div></form></div>`,
+register:()=>!eff.features.register?nf("Регистрация сейчас закрыта."):`<div class="wrap"><form class="auth fade" id="af"><h1>Создать аккаунт</h1><div class="grp"><input name="nick" placeholder="Никнейм" maxlength="24" autocomplete="nickname" required><input name="email" type="email" placeholder="Почта" autocomplete="email" required><div class="pw"><input name="password" type="password" placeholder="Пароль" autocomplete="new-password" required><button type="button" class="eye" aria-label="Показать пароль">${EYE}</button></div><div class="pw"><input name="password2" type="password" placeholder="Повторите пароль" autocomplete="new-password" required><button type="button" class="eye" aria-label="Показать пароль">${EYE}</button></div></div><button class="btn big">Продолжить</button><div class="er" id="er"></div><div class="alt">Создавая аккаунт, вы принимаете <a href="${R}privacy.html">политику конфиденциальности</a>.</div></form></div>`,
+profile:async()=>{const u=new URLSearchParams(location.search).get("u");if(u&&u!==me?.id)return pubProfile(u);
+ if(!me)return nf(`<a href="${R}login.html" style="color:var(--ac)">Войдите</a>, чтобы открыть профиль.`);
  const lk=await get(sb.from("likes").select("tracks(id,title)").eq("user_id",me.id)),cm=await get(sb.from("comments").select("body,sticker,created_at").eq("user_id",me.id).order("created_at",{ascending:false}).limit(20));
- return `<div class="wrap"><div class="art"><div class="eyebrow">профиль</div><h1>${esc(me.nick)}</h1><div class="meta">${esc(user.email)} · с ${fmt(me.created_at)}</div>
- <form id="nf" class="frm glass" style="margin-top:24px"><label>Никнейм<input name="nick" value="${esc(me.nick)}" minlength="2" maxlength="24"></label><button class="btn" style="justify-self:start;margin:0">Сохранить</button><div class="er" id="er"></div></form>
- <h3>Понравившиеся песни</h3>${lk.map(l=>l.tracks?`<div class="tr"><span><a href="${L.track(l.tracks.id)}">♥ ${esc(l.tracks.title)}</a></span></div>`:"").join("")||'<div class="empty">Пока нет.</div>'}
- <h3 style="margin-top:32px">Мои комментарии</h3>${cm.map(c=>`<div class="cm"><div class="meta">${fmt(c.created_at)}</div>${esc(c.sticker||c.body||"GIF")}</div>`).join("")||'<div class="empty">Пока нет.</div>'}
- <div style="margin-top:36px;display:flex;gap:12px;flex-wrap:wrap"><button class="btn ghost" id="lo">Выйти</button>${adm?"":'<button class="btn ghost" id="dm" style="color:#e7a39a">Удалить аккаунт</button>'}</div></div></div>`},
+ return `<div class="wrap"><div class="art prof" style="max-width:560px"><div class="pf"><div class="avl">${av(me)}</div><div><h1 style="font-size:30px">${esc(me.nick)}${adm?' <span class="badge">автор</span>':""}</h1><div class="meta">${esc(user.email)} · с ${fmt(me.created_at)}</div></div></div>
+ ${me.banned?'<div class="empty" style="margin:16px 0">Ваш аккаунт ограничен автором: публиковать и менять профиль нельзя.</div>':""}
+ <div class="acts" style="margin:14px 0 24px"><label class="btn ghost sm" style="cursor:pointer">Сменить фото<input type="file" id="avf" accept="image/*" hidden></label>${me.avatar?'<button class="btn ghost sm" id="avd">Убрать фото</button>':""}</div>
+ <form id="nf"><div class="grp"><input name="nick" value="${esc(me.nick)}" placeholder="Никнейм" maxlength="24"><textarea name="bio" rows="3" maxlength="300" placeholder="О себе">${esc(me.bio||"")}</textarea></div><button class="btn big" style="margin-top:12px">Сохранить</button><div class="er" id="er"></div></form>
+ <h3>Пароль</h3><form id="pf2"><div class="grp"><div class="pw"><input name="p1" type="password" placeholder="Новый пароль" autocomplete="new-password"><button type="button" class="eye" aria-label="Показать">${EYE}</button></div><div class="pw"><input name="p2" type="password" placeholder="Повторите новый пароль" autocomplete="new-password"><button type="button" class="eye" aria-label="Показать">${EYE}</button></div></div><button class="btn ghost big" style="margin-top:12px">Изменить пароль</button><div class="er" id="er2"></div></form>
+ <h3>Понравившиеся песни</h3>${lk.map(l=>l.tracks?`<div class="tr"><span><a href="${L.track(l.tracks.id)}">♥ ${esc(l.tracks.title)}</a></span></div>`:"").join("")||'<div class="empty">Пока нет.</div>'}<div class="note">Ваши лайки видны только вам и автору сайта.</div>
+ <h3>Мои комментарии</h3>${cm.map(c=>`<div class="cm"><div class="cb"><div class="meta">${fmt(c.created_at)}</div>${esc(c.sticker||c.body||"GIF")}</div></div>`).join("")||'<div class="empty">Пока нет.</div>'}
+ <h3>Данные и аккаунт</h3><div class="acts"><button class="btn ghost" id="ex">Скачать мои данные</button><button class="btn ghost" id="lo">Выйти</button></div>
+ ${adm?'<div class="note">Аккаунт автора удалить нельзя.</div>':'<div class="acts" style="margin-top:14px"><button class="btn ghost" id="dm" style="color:#f0a89f">Удалить аккаунт</button></div>'}</div></div>`},
 admin:()=>""
 };
 const A={
- login:()=>$("#af").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),{error}=await sb.auth.signInWithPassword({email:f.get("email"),password:f.get("password")});error?$("#er").textContent="Неверная почта или пароль.":location.href=R},
- register:()=>$("#af").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),{data,error}=await sb.auth.signUp({email:f.get("email"),password:f.get("password"),options:{data:{nick:f.get("nick")}}});
-  if(error)return $("#er").textContent=error.message;data.session?location.href=R:$("#af").innerHTML='<h1>Почти готово</h1><p>Мы отправили письмо. Подтвердите почту и войдите.</p>'},
- profile:()=>{if(!me)return;$("#nf").onsubmit=async e=>{e.preventDefault();const{error}=await sb.from("profiles").update({nick:new FormData(e.target).get("nick")}).eq("id",me.id);error?$("#er").textContent="Ник должен быть от 2 до 24 символов.":location.reload()};
+ login:()=>{eyes();$("#af").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),{error}=await sb.auth.signInWithPassword({email:f.get("email").trim(),password:f.get("password")});error?$("#er").textContent="Неверная почта или пароль.":location.href=R}},
+ register:()=>{eyes();if(!$("#af"))return;$("#af").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),nick=f.get("nick").trim(),pw=f.get("password"),er=m=>$("#er").textContent=m;
+  if(nick.length<2)return er("Никнейм слишком короткий.");if(pw.length<8)return er("Пароль слишком короткий: нужно минимум 8 символов.");if(pw!==f.get("password2"))return er("Пароли не совпадают.");
+  const{data,error}=await sb.auth.signUp({email:f.get("email").trim(),password:pw,options:{data:{nick}}});
+  if(error)return er(/already|registered/i.test(error.message)?"Эта почта уже зарегистрирована.":/Database error|unique|зарезерв/i.test(error.message)?"Не получилось: никнейм недоступен или регистрация закрыта.":error.message);
+  data.session?location.href=R:$("#af").innerHTML='<h1>Почти готово</h1><p>Мы отправили письмо. Подтвердите почту и войдите.</p>'}},
+ profile:()=>{if(!me||new URLSearchParams(location.search).get("u")&&new URLSearchParams(location.search).get("u")!==me.id)return;eyes();
+  $("#nf").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),{error}=await sb.from("profiles").update({nick:f.get("nick").trim(),bio:f.get("bio").trim()||null}).eq("id",me.id);
+   if(!error)return location.reload();$("#er").textContent=error.code==="23505"?"Этот никнейм уже занят.":/зарезерв/i.test(error.message)?"Этот никнейм недоступен.":error.code==="23514"?"Проверьте данные: никнейм не короче 2 символов, в описании нет ссылок.":error.message};
+  $("#pf2").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),p=f.get("p1"),er=m=>$("#er2").textContent=m;if(p.length<8)return er("Пароль слишком короткий: нужно минимум 8 символов.");if(p!==f.get("p2"))return er("Пароли не совпадают.");
+   const{error}=await sb.auth.updateUser({password:p});er(error?error.message:"Пароль изменён.");if(!error)e.target.reset()};
+  $("#avf").onchange=async e=>{const f=e.target.files[0];if(!f)return;if(!f.type.startsWith("image/"))return alert("Выберите картинку.");
+   try{const b=await resize(f),p=user.id+"/avatar.jpg",{error}=await sb.storage.from("avatars").upload(p,b,{upsert:true,contentType:"image/jpeg"});if(error)throw error;
+    const r=await sb.from("profiles").update({avatar:sb.storage.from("avatars").getPublicUrl(p).data.publicUrl+"?v="+Date.now()}).eq("id",me.id);if(r.error)throw r.error;location.reload()}catch(x){alert("Не удалось загрузить фото: "+(x.message||x))}};
+  const rm=$("#avd");if(rm)rm.onclick=async()=>{await sb.storage.from("avatars").remove([user.id+"/avatar.jpg"]);await sb.from("profiles").update({avatar:null}).eq("id",me.id);location.reload()};
   $("#lo").onclick=async()=>{await sb.auth.signOut();location.href=R};
-  const d=$("#dm");if(d)d.onclick=async()=>{if(confirm("Удалить аккаунт, лайки и комментарии навсегда?")){await sb.rpc("delete_me");await sb.auth.signOut();location.href=R}}}
+  $("#ex").onclick=async()=>{const[l,c]=await Promise.all([get(sb.from("likes").select("created_at,tracks(title)").eq("user_id",me.id)),get(sb.from("comments").select("*").eq("user_id",me.id))]);
+   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify({email:user.email,profile:{nick:me.nick,bio:me.bio,avatar:me.avatar,created_at:me.created_at},likes:l,comments:c},null,2)],{type:"application/json"}));a.download="wserf-my-data.json";document.body.appendChild(a);a.click();a.remove()};
+  const d=$("#dm");if(d){B.insertAdjacentHTML("beforeend",`<div id="sh2"><div class="sheet"><h3>Удалить аккаунт?</h3><p>Навсегда удалятся аккаунт, фото и описание, ваши лайки, все ваши комментарии и ответы под ними. Отменить это нельзя.</p><input id="dpw" type="password" placeholder="Ваш пароль" autocomplete="current-password"><input id="dwd" placeholder="Введите слово УДАЛИТЬ" autocomplete="off"><div class="er" id="der"></div><button class="btn danger" id="dgo" disabled>Удалить навсегда</button><button class="btn ghost" id="dno">Отмена</button></div></div>`);
+   const chk=()=>$("#dgo").disabled=!($("#dpw").value&&$("#dwd").value.trim().toUpperCase()==="УДАЛИТЬ");$("#dpw").oninput=$("#dwd").oninput=chk;
+   d.onclick=()=>$("#sh2").classList.add("on");$("#dno").onclick=()=>$("#sh2").classList.remove("on");$("#sh2").onclick=e=>{if(e.target.id==="sh2")$("#sh2").classList.remove("on")};
+   $("#dgo").onclick=async()=>{const er=m=>$("#der").textContent=m;$("#dgo").disabled=true;const{error:e1}=await sb.auth.signInWithPassword({email:user.email,password:$("#dpw").value});if(e1){er("Неверный пароль.");return chk()}
+    await sb.storage.from("avatars").remove([user.id+"/avatar.jpg"]);const{error}=await sb.rpc("delete_me");if(error){er("Не удалось удалить: "+error.message);return chk()}
+    await sb.auth.signOut();location.href=R+"?deleted=1"}}}
 };
-if(!sb&&!["about","about-privacy"].includes(P)){M.innerHTML=nf('Сайт ещё не подключён к базе данных. Откройте <b>assets/js/config.js</b> и вставьте данные Supabase (инструкция в README.md).');}
+const SEC={journal:"journal","journal-post":"journal",stories:"stories","stories-story":"stories",music:"music","music-album":"music","music-track":"music",about:"about"};
+if(eff.maintenance.on&&!adm&&P!=="login"&&P!=="admin")M.innerHTML=nf(esc(eff.maintenance.text));
+else if(!sb&&!["about","about-privacy"].includes(P))M.innerHTML=nf('Сайт ещё не подключён к базе данных. Откройте <b>config.js</b> и вставьте данные Supabase.');
+else if(SEC[P]&&eff.nav[SEC[P]]===false&&!adm)M.innerHTML=nf("Этот раздел сейчас закрыт.");
 else{M.innerHTML=await V[P]();A[P]?.()}
-document.title=P==="home"?"wserf — мысли, музыка и истории":"wserf · "+document.title;
+document.title=eff.name+(P==="home"?" — "+eff.hero.title:" · "+(TT[P]||""));
 })();
