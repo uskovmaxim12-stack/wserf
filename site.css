@@ -178,3 +178,21 @@ body.mtn .top,body.mtn .tab,body.mtn footer,body.mtn #pl,body.mtn .bn{display:no
 
 input[type=number]{-moz-appearance:textfield;appearance:textfield}input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .ver{margin-top:8px;font-size:11px;opacity:.45}
+
+/* сердце-эмодзи */
+.lk{gap:8px}.hrt{display:inline-block;font-size:21px;line-height:1;transition:transform .3s var(--sp),filter .25s}.lk b{font-weight:600}
+.lk:not(.on) .hrt{filter:grayscale(1) brightness(1.7) opacity(.75)}.lk.on{background:rgba(255,59,92,.18);box-shadow:inset 0 0 0 1px rgba(255,59,92,.55)}.lk.on .hrt{animation:pop .45s var(--sp)}
+@keyframes pop{40%{transform:scale(1.55)}}
+/* кнопка «назад» */
+.back{display:inline-flex!important;align-items:center;gap:4px;padding:8px 16px 8px 10px;margin:18px 0 6px!important;border-radius:99px;background:rgba(255,255,255,.08);color:var(--t)!important;font-size:15px!important;font-weight:500;transition:transform .25s var(--sp),background .2s}
+.back svg{width:20px;height:20px;fill:none;stroke:var(--ac);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.back:active{transform:scale(.95);background:rgba(255,255,255,.14)}
+.art .back{margin-top:0!important}
+/* загрузочный каркас */
+.sk-top{position:sticky;top:0;height:60px;z-index:40;background:color-mix(in srgb,var(--bg) 62%,transparent);border-bottom:1px solid var(--line)}
+.sk{max-width:1100px;margin:0 auto;padding:60px 24px;display:grid;gap:18px}.sk i{display:block;border-radius:18px;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.11),rgba(255,255,255,.04));background-size:200% 100%;animation:skm 1.4s linear infinite}
+.sk1{height:16px;width:120px}.sk2{height:72px;width:70%}.sk3,.sk4{height:150px}@keyframes skm{to{background-position:-200% 0}}
+/* карточка пользователя */
+.sheet.big{max-height:88vh;overflow:auto}.kv{display:grid;grid-template-columns:1fr auto;gap:8px 14px;font-size:15px;margin:6px 0}.kv span{color:var(--t2)}
+.sheet h4{font-size:13px;color:var(--t2);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 4px}.mini{font-size:14px;color:var(--t2);overflow-wrap:anywhere;padding:3px 0}
+.ua{display:grid;gap:8px;margin-top:14px}.ua .btn,.sheet .btn{margin:0}.urow{cursor:pointer}.urow .av{width:40px;height:40px;font-size:16px;flex:none}.urow:active{background:rgba(255,255,255,.05)}
+.sheet.big{text-align:left;background:var(--s2);-webkit-backdrop-filter:none;backdrop-filter:none}.sheet.big p,.sheet.big h3{text-align:left}.sheet.big .pf{justify-content:flex-start}
