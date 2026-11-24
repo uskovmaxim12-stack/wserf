@@ -351,3 +351,9 @@ footer{padding:38px 0 calc(38px + env(safe-area-inset-bottom));line-height:2}
  #ad .stat{grid-template-columns:repeat(2,minmax(0,1fr))}
  #ad .stat b{font-size:28px}
 }
+
+
+/* Accessible modal behavior */
+.sheet-open{overflow:hidden}
+.sheet[role="dialog"]:focus{outline:none}
+.sheet[role="dialog"] :where(button,a,input,textarea,select):focus-visible{outline:2px solid var(--ac);outline-offset:3px}
