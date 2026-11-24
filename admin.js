@@ -1,7 +1,7 @@
 WREADY.then(()=>{const{sb,esc,fmt,me,M}=W;if(!sb)return;
 if(me?.role!=="admin"){M.innerHTML='<div class="wrap"><div class="empty" style="margin:80px 0">Доступ только для автора. <a href="login.html" style="color:var(--ac)">Войти</a></div></div>';return}
 const ui=W.ui;
-const shrink=file=>new Promise(res=>{if(!file||!file.type||!file.type.startsWith("image/")||/svg|gif/.test(file.type))return res(file);const im=new Image();im.onload=()=>{const k=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);c.toBlob(b=>res(b?new File([b],file.name.replace(/\.\w+$/,"")+".jpg",{type:"image/jpeg"}):file),"image/jpeg",.82)};im.onerror=()=>res(file);im.src=URL.createObjectURL(file)});const G=p=>p.then(r=>{if(r.error)ui.toast(r.error.message,1);return r.data||[]});
+const shrink=file=>new Promise(res=>{if(!file||!file.type||!file.type.startsWith("image/")||/svg|gif/.test(file.type))return res(file);const im=new Image();im.onload=()=>{const k=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);c.toBlob(b=>res(b?new File([b],file.name.replace(/\.\w+$/,"")+".jpg",{type:"image/jpeg"}):file),"image/jpeg",.82)};im.onerror=()=>res(file);im.src=URL.createObjectURL(file)});const G=p=>p.then(r=>{if(r.error)ui.toast(r.error.message,1);return r.data||[]});const run=async p=>{const r=await G(p);return !r.error};
 const fpath=u=>{const m=/\/object\/public\/media\/([^?]+)/.exec(u||"");return m?decodeURIComponent(m[1]):null};
 const rmFiles=async urls=>{const p=urls.map(fpath).filter(Boolean);if(p.length)await sb.storage.from("media").remove(p)};
 const PF=[["title","Заголовок","text"],["category","Категория","text"],["excerpt","Краткое описание","area"],["body","Текст","area"],["cover","Фотография / обложка","file:image/*"],["published_at","Дата публикации","date"],["published","Опубликовать (иначе черновик)","bool"]];
@@ -181,14 +181,14 @@ async function userSheet(u){if(!u)return;
    if(!adm){b.querySelectorAll("[data-r]").forEach(c=>c.onchange=()=>done({r:c.dataset.r,v:!c.checked}));const bn=b.querySelector("#ubn");if(bn)bn.onchange=()=>done({ban:bn.checked})}});
  if(!act)return;let ok=false;
  if(act.r){let reason;if(act.v){reason=await ui.ask("Причина ограничения","Увидит сам пользователь","",{ok:"Ограничить"});if(reason===undefined)return userSheet(u)}
-  await G(sb.rpc("admin_set_restrict",{uid:u.id,field:act.r,val:act.v,why:act.v?reason:null}));ok=true}
- if(act.ban!==undefined){if(act.ban){const r=await ui.ask("Полностью заблокировать","Причина (увидит пользователь)","",{ok:"Заблокировать",text:"Он не сможет писать, лайкать и менять профиль."});if(r===undefined)return userSheet(u);await G(sb.rpc("admin_ban_user",{uid:u.id,b:true,why:r}));ok=true}
-  else{await G(sb.rpc("admin_ban_user",{uid:u.id,b:false,why:null}));ok=true}}
- if(act.a==="nick"){const n=await ui.ask("Новый никнейм","Никнейм",u.nick,{max:24});if(n){await G(sb.rpc("admin_set_nick",{uid:u.id,n}));ok=true}}
- if(act.a==="clear"&&await ui.confirm("Фото и описание пользователя будут удалены.",{danger:1,ok:"Убрать"})){await sb.storage.from("avatars").remove([u.id+"/avatar.jpg"]);await G(sb.rpc("admin_clear_profile",{uid:u.id}));ok=true}
+  ok=await run(sb.rpc("admin_set_restrict",{uid:u.id,field:act.r,val:act.v,why:act.v?reason:null}))}
+ if(act.ban!==undefined){if(act.ban){const r=await ui.ask("Полностью заблокировать","Причина (увидит пользователь)","",{ok:"Заблокировать",text:"Он не сможет писать, лайкать и менять профиль."});if(r===undefined)return userSheet(u);ok=await run(sb.rpc("admin_ban_user",{uid:u.id,b:true,why:r}))}
+  else{ok=await run(sb.rpc("admin_ban_user",{uid:u.id,b:false,why:null}))}}
+ if(act.a==="nick"){const n=await ui.ask("Новый никнейм","Никнейм",u.nick,{max:24});if(n){ok=await run(sb.rpc("admin_set_nick",{uid:u.id,n}))}}
+ if(act.a==="clear"&&await ui.confirm("Фото и описание пользователя будут удалены.",{danger:1,ok:"Убрать"})){ok=await run(sb.rpc("admin_clear_profile",{uid:u.id}));if(ok)await sb.storage.from("avatars").remove([u.id+"/avatar.jpg"])}
  if(act.a==="purge"){const w=await ui.pick([["comments","Все комментарии"],["reactions","Все реакции"],["likes","Все лайки"],["topics","Все темы форума"],["all","Всё перечисленное"]],null,"Что удалить у "+u.nick);
-  if(w&&await ui.confirm("Это нельзя отменить.",{danger:1,ok:"Удалить"})){await G(sb.rpc("admin_purge_user",{uid:u.id,what:w}));ok=true}}
- if(act.a==="del"&&await ui.confirm("Аккаунт, лайки, комментарии и темы пользователя будут удалены навсегда.",{danger:1,ok:"Удалить"})){await sb.storage.from("avatars").remove([u.id+"/avatar.jpg"]);await G(sb.rpc("admin_delete_user",{uid:u.id}));ok=true}
+  if(w&&await ui.confirm("Это нельзя отменить.",{danger:1,ok:"Удалить"})){ok=await run(sb.rpc("admin_purge_user",{uid:u.id,what:w}))}}
+ if(act.a==="del"&&await ui.confirm("Аккаунт, лайки, комментарии и темы пользователя будут удалены навсегда.",{danger:1,ok:"Удалить"})){ok=await run(sb.rpc("admin_delete_user",{uid:u.id}));if(ok)await sb.storage.from("avatars").remove([u.id+"/avatar.jpg"])}
  if(ok){ui.toast("Готово");users()}}
 async function reps(){const r=await G(sb.from("reports").select("id,created_at,comment_id,profiles(nick),comments(body,sticker,profiles(nick))").order("created_at",{ascending:false}));
  ad().innerHTML=r.map(x=>`<div class="row"><span><b>${esc(x.comments?.profiles?.nick)}</b>: ${esc(x.comments?.sticker||x.comments?.body||"…")}<br><small style="color:var(--t2)">жалоба от ${esc(x.profiles?.nick)} · ${fmt(x.created_at)}</small></span><button class="btn ghost sm" data-k="${x.id}">Отклонить</button><button class="btn ghost sm" data-x="${x.comment_id}" style="color:#f0a89f">Удалить комментарий</button></div>`).join("")||'<div class="empty">Жалоб нет.</div>';
