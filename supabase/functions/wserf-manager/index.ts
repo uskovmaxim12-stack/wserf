@@ -101,7 +101,14 @@ Deno.serve(async (req: Request) => {
         .select("id,target_type,target_id,user_id,body,gif_url,sticker,created_at,profiles(nick)")
         .eq("id", id).single();
       if (error) throw error;
-      return reply({ data });
+      let target_kind: string | null = null;
+      if (data.target_type === "post") {
+        const { data: post, error: postError } = await sb.from("posts")
+          .select("kind").eq("id", data.target_id).maybeSingle();
+        if (postError) throw postError;
+        target_kind = post?.kind || null;
+      }
+      return reply({ data: { ...data, target_kind } });
     }
 
     if (action === "delete_comment") {
