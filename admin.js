@@ -139,7 +139,7 @@ function uview(){
  <section class="users-results"><div class="users-results-top"><b id="users-count"></b><span>Нажмите на пользователя, чтобы открыть карточку</span></div><div id="ul" class="users-list"></div></section>`;
  const list=()=>{
   const q=UQ.trim().toLocaleLowerCase("ru");
-  let r=UL.filter(u=>(UF==="all"||(UF==="banned"&&u.banned)||(UF==="admin"&&u.role==="admin")||(UF==="active"&&on(u))||(UF==="quiet"&&!(+u.comments+ +u.likes+ +u.reactions+ +u.topics)))&&(!q||((u.nick||"")+" "+(u.email||"")).toLocaleLowerCase("ru").includes(q)));
+  let r=UL.filter(u=>(UF==="all"||(UF==="banned"&&u.banned)||(UF==="admin"&&u.role==="admin")||(UF==="active"&&on(u))||(UF==="quiet"&&!on(u)))&&(!q||((u.nick||"")+" "+(u.email||"")).toLocaleLowerCase("ru").includes(q)));
   const score=u=>+u.comments+ +u.topics*3+ +u.likes+ +u.reactions;
   r.sort(US==="act"?(a,b)=>score(b)-score(a):US==="in"?(a,b)=>String(b.last_sign_in_at||"").localeCompare(String(a.last_sign_in_at||"")):(a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||"")));
   document.getElementById("users-count").textContent=`Найдено: ${r.length} из ${UL.length}`;
