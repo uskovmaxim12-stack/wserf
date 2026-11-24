@@ -44,9 +44,24 @@ function bind(){
  document.querySelectorAll("[data-viewcomment]").forEach(b=>b.onclick=()=>{tab="comments";render();});
 }
 async function start(){
- shell();try{const {data:{session}}=await sb.auth.getSession();if(!session){$("#who").textContent="Войдите в аккаунт администратора на основном сайте, затем откройте панель.";$("#panel").innerHTML='<p class="empty">Нет активной сессии. Сначала войдите на wserf.</p>';return}
- const {data:user}=await sb.auth.getUser();$("#who").textContent="Сеанс: "+(user.user?.email||"администратор");
- await load();
+ shell();
+ try{
+  if(!window.supabase?.createClient||!C?.url||!C?.key) throw new Error("Не загрузилась конфигурация Supabase. Обновите страницу.");
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){
+   $("#who").textContent="Вход в административную панель";
+   $("#panel").innerHTML=`<form id="loginform" class="composer" style="max-width:440px;margin:24px auto"><h2>Вход администратора</h2><p>Используй тот же аккаунт, что и на сайте wserf.</p><input name="email" type="email" autocomplete="username" placeholder="Электронная почта" required><input name="password" type="password" autocomplete="current-password" placeholder="Пароль" required><button id="loginbutton">Войти в центр управления</button><p id="loginerror" role="alert"></p><a href="index.html">Вернуться на сайт</a></form>`;
+   $("#loginform").onsubmit=async e=>{
+    e.preventDefault();const f=new FormData(e.currentTarget);const b=$("#loginbutton");b.disabled=true;b.textContent="Входим…";
+    try{const {error}=await sb.auth.signInWithPassword({email:String(f.get("email")).trim(),password:String(f.get("password"))});if(error)throw error;const {data:user}=await sb.auth.getUser();$("#who").textContent="Сеанс: "+(user.user?.email||"администратор");await load();}
+    catch(x){$("#loginerror").textContent=x.message||"Не удалось войти.";}
+    finally{b.disabled=false;b.textContent="Войти в центр управления";}
+   };
+   return;
+  }
+  const {data:user}=await sb.auth.getUser();
+  $("#who").textContent="Сеанс: "+(user.user?.email||"администратор");
+  await load();
  }catch(e){notice(e.message,true)}
 }
 document.addEventListener("DOMContentLoaded",start);
