@@ -88,17 +88,17 @@ const panels={
  <h3>Резервная копия</h3><div class="frm glass">${note("Скачайте файл со всеми песнями, альбомами, записями и настройками. Хорошо делать перед большими изменениями.")}<button type="button" class="btn ghost" id="bk" style="justify-self:start;margin:0">Скачать копию</button></div>`}
 };
 let dirty=false;
-const dbar=()=>{const b=document.getElementById("dbar");if(dirty&&!b){document.body.insertAdjacentHTML("beforeend",'<div id="dbar"><span>Есть несохранённые изменения</span><button class="btn sm">Сохранить</button></div>');document.querySelector("#dbar button").onclick=()=>saveCfg()}else if(!dirty&&b)b.remove()};
+const dbar=()=>{const b=document.getElementById("dbar");if(dirty&&!b){document.body.insertAdjacentHTML("beforeend",'<div id="dbar"><span>Есть несохранённые изменения</span><button class="btn sm">Сохранить</button></div>');document.querySelector("#dbar button").onclick=()=>saveCfg()}else if(!dirty&&b)b.remove()};const touch=()=>{dirty=true;dbar()};
 async function saveCfg(){const{error}=await sb.from("settings").upsert({key:"site",value:cfg});if(error)ui.toast("Ошибка: "+error.message,1);else{try{localStorage.setItem("wserf_site",JSON.stringify(cfg))}catch(e){}dirty=false;dbar();ui.toast("Сохранено. Сайт обновлён.")}return error}
 function paint(){panels[tab]();const x=ad();ui.enhance(x);
- x.querySelectorAll("[data-p]").forEach(i=>i.oninput=i.onchange=()=>{dirty=true;dbar();setp(cfg,i.dataset.p,i.type==="checkbox"?i.checked:i.value);W.applySite(cfg)});
- x.querySelectorAll("[data-f]").forEach(i=>i.onchange=async()=>{const f=await shrink(i.files[0]);if(!f)return;const p="site/"+Date.now()+"-"+f.name.replace(/[^a-zA-Z0-9.]/g,"_"),{error}=await sb.storage.from("media").upload(p,f);if(error)return ui.toast("Ошибка загрузки: "+error.message,1);setp(cfg,i.dataset.f,sb.storage.from("media").getPublicUrl(p).data.publicUrl);W.applySite(cfg);paint()});
- x.querySelectorAll("[data-rm]").forEach(a=>a.onclick=e=>{e.preventDefault();setp(cfg,a.dataset.rm,"");paint()});
- x.querySelectorAll("[data-pre]").forEach(b=>b.onclick=()=>{cfg.theme.preset=b.dataset.pre;W.applySite(cfg);paint()});
- x.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{const t=TPL[+b.dataset.add]||{name:"Новое событие",preset:"forest",effect:"none",start:"",end:"",banner:"",heroTitle:"",heroAccent:"",heroText:""};cfg.events.push({id:Date.now(),enabled:true,yearly:true,...t});paint()});
- x.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{if(await ui.confirm("Удалить это событие?",{danger:1,ok:"Удалить"})){cfg.events.splice(+b.dataset.del,1);W.applySite(cfg);paint()}});
- x.querySelectorAll("[data-addl]").forEach(b=>b.onclick=()=>{cfg.links.push({name:"",url:""});paint()});
- x.querySelectorAll("[data-dell]").forEach(b=>b.onclick=()=>{cfg.links.splice(+b.dataset.dell,1);paint()});
+ x.querySelectorAll("[data-p]").forEach(i=>i.oninput=i.onchange=()=>{touch();setp(cfg,i.dataset.p,i.type==="checkbox"?i.checked:i.value);W.applySite(cfg)});
+ x.querySelectorAll("[data-f]").forEach(i=>i.onchange=async()=>{const f=await shrink(i.files[0]);if(!f)return;const p="site/"+Date.now()+"-"+f.name.replace(/[^a-zA-Z0-9.]/g,"_"),{error}=await sb.storage.from("media").upload(p,f);if(error)return ui.toast("Ошибка загрузки: "+error.message,1);setp(cfg,i.dataset.f,sb.storage.from("media").getPublicUrl(p).data.publicUrl);touch();W.applySite(cfg);paint()});
+ x.querySelectorAll("[data-rm]").forEach(a=>a.onclick=e=>{e.preventDefault();setp(cfg,a.dataset.rm,"");touch();paint()});
+ x.querySelectorAll("[data-pre]").forEach(b=>b.onclick=()=>{cfg.theme.preset=b.dataset.pre;touch();W.applySite(cfg);paint()});
+ x.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{const t=TPL[+b.dataset.add]||{name:"Новое событие",preset:"forest",effect:"none",start:"",end:"",banner:"",heroTitle:"",heroAccent:"",heroText:""};cfg.events.push({id:Date.now(),enabled:true,yearly:true,...t});touch();paint()});
+ x.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{if(await ui.confirm("Удалить это событие?",{danger:1,ok:"Удалить"})){cfg.events.splice(+b.dataset.del,1);touch();W.applySite(cfg);paint()}});
+ x.querySelectorAll("[data-addl]").forEach(b=>b.onclick=()=>{cfg.links.push({name:"",url:""});touch();paint()});
+ x.querySelectorAll("[data-dell]").forEach(b=>b.onclick=()=>{cfg.links.splice(+b.dataset.dell,1);touch();paint()});
  x.querySelectorAll("#bk").forEach(b=>b.onclick=async()=>{const[a,t,p,s]=await Promise.all([G(sb.from("albums").select("*")),G(sb.from("tracks").select("*")),G(sb.from("posts").select("*")),G(sb.from("settings").select("*"))]);
   const l=document.createElement("a");l.href=URL.createObjectURL(new Blob([JSON.stringify({date:new Date().toISOString(),albums:a,tracks:t,posts:p,settings:s},null,2)],{type:"application/json"}));l.download="site-backup-"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(l);l.click();l.remove()});
  }
