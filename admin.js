@@ -126,21 +126,45 @@ const RMAP=[["comments","Комментарии"],["forum","Форум"],["likes
 const restrictBadges=u=>RMAP.filter(([k])=>u["restrict_"+k]).map(([,n])=>` <small class="chip" style="background:#d9675d;color:#fff">${n}</small>`).join("");
 const KINDN={comment:"💬 Комментарий",topic:"🧵 Новая тема",like:"❤️ Лайк",reaction:"🙂 Реакция",login:"🔑 Вход",signup:"✨ Регистрация",logout:"🚪 Выход"};
 async function users(){UL=await G(sb.rpc("admin_user_list"));uview()}
-function uview(){const now=Date.now(),W7=7*864e5,on=u=>u.last_sign_in_at&&now-new Date(u.last_sign_in_at)<W7;
- const sum=[["Всего",UL.length],["Новых за 7 дней",UL.filter(u=>now-new Date(u.created_at)<W7).length],["Заходили за 7 дней",UL.filter(on).length],["Ограничено",UL.filter(u=>u.banned).length]];
- const F=[["all","Все"],["active","Активные"],["quiet","Без активности"],["banned","Ограниченные"],["admin","Автор"]],S=[["new","Новые"],["act","По активности"],["in","По входу"]];
- ad().innerHTML=`<div class="stat">${sum.map(([l,n])=>`<div class="glass"><b>${n}</b>${l}</div>`).join("")}</div>
- <div class="acts" style="margin-bottom:12px"><input id="uq" placeholder="Поиск по нику или почте" value="${esc(UQ)}" style="flex:1;min-width:180px"><button class="btn ghost sm" id="ucsv">Скачать список (CSV)</button></div>
- <div class="chips" style="margin-bottom:8px">${F.map(([k,n])=>`<button type="button" class="chip2 ${UF===k?"on":""}" data-uf="${k}">${n}</button>`).join("")}</div>
- <div class="chips" style="margin-bottom:14px">${S.map(([k,n])=>`<button type="button" class="chip2 ${US===k?"on":""}" data-us="${k}">${n}</button>`).join("")}</div><div id="ul"></div>`;
- const list=()=>{const q=UQ.toLowerCase();let r=UL.filter(u=>(UF==="all"||(UF==="banned"&&u.banned)||(UF==="admin"&&u.role==="admin")||(UF==="active"&&on(u))||(UF==="quiet"&&!(+u.comments+ +u.likes+ +u.reactions+ +u.topics)))&&(!q||((u.nick||"")+" "+(u.email||"")).toLowerCase().includes(q)));
-  const sc=u=>+u.comments+ +u.topics*3+ +u.likes+ +u.reactions;r.sort(US==="act"?(a,b)=>sc(b)-sc(a):US==="in"?(a,b)=>String(b.last_sign_in_at).localeCompare(String(a.last_sign_in_at)):(a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
-  document.getElementById("ul").innerHTML=r.map(u=>`<div class="row urow" data-u="${u.id}" role="button" tabindex="0">${u.avatar?`<img class="av" src="${esc(u.avatar)}" alt="">`:`<div class="av">${esc((u.nick||"?")[0].toUpperCase())}</div>`}<span><b>${esc(u.nick)}</b>${u.role==="admin"?' <small class="chip">автор</small>':""}${u.banned?' <small class="chip" style="background:#d9675d;color:#fff">ограничен</small>':restrictBadges(u)}<br><small style="color:var(--t2)">${esc(u.email||"")} · вход: ${ago2(u.last_sign_in_at)}</small></span><small style="color:var(--t2);white-space:nowrap">💬 ${u.comments} · 🧵 ${u.topics} · ❤️ ${u.likes}</small></div>`).join("")||'<div class="empty">Никого не найдено.</div>';
-  document.querySelectorAll("#ul [data-u]").forEach(r=>{const o=()=>userSheet(UL.find(u=>u.id===r.dataset.u));r.onclick=o;r.onkeydown=e=>{if(e.key==="Enter")o()}})};
- list();document.getElementById("uq").oninput=e=>{UQ=e.target.value;list()};
- ad().querySelectorAll("[data-uf]").forEach(b=>b.onclick=()=>{UF=b.dataset.uf;uview()});ad().querySelectorAll("[data-us]").forEach(b=>b.onclick=()=>{US=b.dataset.us;uview()});
- document.getElementById("ucsv").onclick=()=>{const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"',rows=[["email","ник","роль","ограничен","регистрация","последний вход","комментарии","темы","лайки","реакции"],...UL.map(u=>[u.email,u.nick,u.role,u.banned?"да":"нет",u.created_at,u.last_sign_in_at||"",u.comments,u.topics,u.likes,u.reactions])];
-  const l=document.createElement("a");l.href=URL.createObjectURL(new Blob(["\ufeff"+rows.map(r=>r.map(q).join(",")).join("\n")],{type:"text/csv"}));l.download="users-"+new Date().toISOString().slice(0,10)+".csv";document.body.appendChild(l);l.click();l.remove()}}
+function uview(){
+ const now=Date.now(),W7=7*864e5,on=u=>!!u.last_sign_in_at&&now-new Date(u.last_sign_in_at).getTime()<W7;
+ const sum=[["Всего пользователей",UL.length],["Новые за 7 дней",UL.filter(u=>u.created_at&&now-new Date(u.created_at).getTime()<W7).length],["Активны за 7 дней",UL.filter(on).length],["С ограничениями",UL.filter(u=>u.banned||RMAP.some(([k])=>u["restrict_"+k])).length]];
+ const F=[["all","Все"],["active","Активные"],["quiet","Без активности"],["banned","Заблокированные"],["admin","Автор"]];
+ const S=[["new","Сначала новые"],["act","По активности"],["in","По последнему входу"]];
+ ad().innerHTML=`<section class="users-head"><div><div class="users-kicker">УПРАВЛЕНИЕ АККАУНТАМИ</div><h2>Пользователи</h2><p>Поиск, активность и настройки доступа</p></div><button class="btn ghost sm users-export" id="ucsv" type="button">↓ Экспорт CSV</button></section>
+ <section class="users-stats">${sum.map(([l,n])=>`<article class="users-stat"><span>${l}</span><b>${n}</b></article>`).join("")}</section>
+ <section class="users-tools"><label class="users-search"><span>⌕</span><input id="uq" type="search" autocomplete="off" placeholder="Найти по нику или электронной почте" value="${esc(UQ)}"><button type="button" id="uqclear" aria-label="Очистить поиск" ${UQ?"":"hidden"}>×</button></label>
+ <div class="users-filter-block"><span class="users-label">ПОКАЗАТЬ</span><div class="users-filters" role="group" aria-label="Фильтр пользователей">${F.map(([k,n])=>`<button type="button" class="users-filter ${UF===k?"is-active":""}" data-uf="${k}" aria-pressed="${UF===k}">${n}</button>`).join("")}</div></div>
+ <div class="users-sort"><label for="usort" class="users-label">СОРТИРОВКА</label><select id="usort">${S.map(([k,n])=>`<option value="${k}" ${US===k?"selected":""}>${n}</option>`).join("")}</select></div></section>
+ <section class="users-results"><div class="users-results-top"><b id="users-count"></b><span>Нажмите на пользователя, чтобы открыть карточку</span></div><div id="ul" class="users-list"></div></section>`;
+ const list=()=>{
+  const q=UQ.trim().toLocaleLowerCase("ru");
+  let r=UL.filter(u=>(UF==="all"||(UF==="banned"&&u.banned)||(UF==="admin"&&u.role==="admin")||(UF==="active"&&on(u))||(UF==="quiet"&&!(+u.comments+ +u.likes+ +u.reactions+ +u.topics)))&&(!q||((u.nick||"")+" "+(u.email||"")).toLocaleLowerCase("ru").includes(q)));
+  const score=u=>+u.comments+ +u.topics*3+ +u.likes+ +u.reactions;
+  r.sort(US==="act"?(a,b)=>score(b)-score(a):US==="in"?(a,b)=>String(b.last_sign_in_at||"").localeCompare(String(a.last_sign_in_at||"")):(a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||"")));
+  document.getElementById("users-count").textContent=`Найдено: ${r.length} из ${UL.length}`;
+  const el=document.getElementById("ul");
+  el.innerHTML=r.map(u=>{
+   const avatar=typeof u.avatar==="string"&&/^https?:\/\//i.test(u.avatar)?`<img class="users-avatar" src="${esc(u.avatar)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:`<span class="users-avatar users-avatar-fallback">${esc((u.nick||"?").trim().charAt(0).toLocaleUpperCase("ru"))}</span>`;
+   const tags=RMAP.filter(([k])=>u["restrict_"+k]).map(([,n])=>`<span class="users-tag is-restricted">${n}</span>`).join("");
+   const status=u.banned?'<span class="users-tag is-blocked">Заблокирован</span>':u.role==="admin"?'<span class="users-tag is-author">Автор</span>':'<span class="users-tag is-normal">Аккаунт активен</span>';
+   return `<button type="button" class="users-card" data-u="${esc(u.id)}">${avatar}<span class="users-main"><span class="users-name">${esc(u.nick||"Без ника")}</span><span class="users-email">${esc(u.email||"Почта не указана")}</span><span class="users-tags">${status}${tags}</span></span><span class="users-activity"><span><b>${+u.comments||0}</b><small>комм.</small></span><span><b>${+u.topics||0}</b><small>темы</small></span><span><b>${+u.likes||0}</b><small>лайки</small></span></span><span class="users-last"><small>Последний вход</small><b>${esc(u.last_sign_in_at?ago2(u.last_sign_in_at):"Ещё не входил")}</b></span><span class="users-chevron">›</span></button>`;
+  }).join("")||'<div class="users-empty"><span>⌕</span><b>Пользователи не найдены</b><small>Измените запрос или выберите другой фильтр.</small></div>';
+  el.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>userSheet(UL.find(u=>u.id===b.dataset.u)));
+ };
+ list();
+ const search=document.getElementById("uq");
+ search.oninput=e=>{UQ=e.target.value;document.getElementById("uqclear").hidden=!UQ;list()};
+ document.getElementById("uqclear").onclick=()=>{UQ="";search.value="";document.getElementById("uqclear").hidden=true;list();search.focus()};
+ ad().querySelectorAll("[data-uf]").forEach(b=>b.onclick=()=>{UF=b.dataset.uf;uview()});
+ document.getElementById("usort").onchange=e=>{US=e.target.value;list()};
+ document.getElementById("ucsv").onclick=()=>{
+  const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
+  const rows=[["email","ник","роль","заблокирован","регистрация","последний вход","комментарии","темы","лайки","реакции"],...UL.map(u=>[u.email,u.nick,u.role,u.banned?"да":"нет",u.created_at,u.last_sign_in_at||"",u.comments,u.topics,u.likes,u.reactions])];
+  const url=URL.createObjectURL(new Blob(["\ufeff"+rows.map(r=>r.map(q).join(",")).join("\r\n")],{type:"text/csv;charset=utf-8"}));
+  const a=document.createElement("a");a.href=url;a.download="wserf-users-"+new Date().toISOString().slice(0,10)+".csv";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ };
+}
 async function userSheet(u){if(!u)return;
  const[cm,lk,tp]=await Promise.all([G(sb.from("comments").select("body,sticker,created_at").eq("user_id",u.id).order("created_at",{ascending:false}).limit(5)),G(sb.from("likes").select("tracks(title)").eq("user_id",u.id).limit(8)),G(sb.from("topics").select("id,title").eq("user_id",u.id).order("created_at",{ascending:false}).limit(5))]);
  const act0=await G(sb.rpc("admin_user_activity",{uid:u.id,lim:40}));
