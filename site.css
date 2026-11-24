@@ -331,3 +331,23 @@ footer{padding:38px 0 calc(38px + env(safe-area-inset-bottom));line-height:2}
  .tp .av{width:34px;height:34px}.tp .rc{max-width:54px}.ctl{gap:6px}
 }
 @media(hover:none){.card:hover,.tp:hover{transform:none}.btn:active,.tp:active,.card:active{transform:scale(.985)}}
+
+
+/* Admin content lists use the same grouped surfaces as the public site */
+#ad{min-width:0}
+#ad>h3{font-size:19px;letter-spacing:-.025em;margin:28px 0 12px}
+#ad>.row,#ad .row{padding:14px 15px;margin:8px 0;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.025);gap:10px}
+#ad .row span{min-width:0;overflow-wrap:anywhere}
+#ad .row .btn{margin:0;min-height:38px}
+#ad .stat{gap:12px}
+#ad .stat .glass{border-radius:18px;background:rgba(255,255,255,.035)}
+#ad .bars{border-radius:18px;border:1px solid var(--line);background:rgba(255,255,255,.025)}
+#ad .frm{border-radius:20px;background:rgba(255,255,255,.025);border-color:var(--line)}
+#ad .empty{margin:10px 0}
+@media(max-width:560px){
+ #ad>.row,#ad .row{padding:12px;gap:8px}
+ #ad .row span{flex-basis:100%}
+ #ad .row .btn{flex:1}
+ #ad .stat{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #ad .stat b{font-size:28px}
+}
